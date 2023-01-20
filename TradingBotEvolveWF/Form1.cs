@@ -16,9 +16,22 @@ namespace TradingBotEvolveWF
         {
             InitializeComponent();
         }
-        public static void PrintLog(string message)
+        public static void PrintLog(string message, Form1 f)
         {
-            textBox1.Text += Environment.NewLine + message;
+            //f.listView1.Text += Environment.NewLine + message;
+            f.listView1.Items.Add(message);
+            f.listView1.Items.Add(Environment.NewLine);
+            //f.listView1.Refresh();
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            PrintLog("sssss", this);
         }
     }
 }
