@@ -24,3 +24,4 @@ namespace TradingBotEvolveWF
         }
     }
 }
+//CREATE TABLE QuotesBD.Brent2018 LIKE desktop-glvt5qn\sqlexpress01.tempdb.Brent2018

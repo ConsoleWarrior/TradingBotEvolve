@@ -16,7 +16,7 @@ namespace TradingBotEvolveWF
     public partial class Form1 : Form
     {
 
-        SqlDataAdapter adapter;
+        //SqlDataAdapter adapter;
         DataSet dataSet = new DataSet();
         List<double> myArray = new List<double>();
         StringBuilder sb1 = new StringBuilder();
@@ -32,17 +32,33 @@ namespace TradingBotEvolveWF
         {
             //string temp = ConfigurationManager.ConnectionStrings["QuotesTemp"].ConnectionString;
             //if(temp == null)PrintLog("empty");
-            SqlConnection connectionDB = new SqlConnection("Data Source=DESKTOP-GLVT5QN\\SQLEXPRESS01;Initial Catalog=tempdb;Integrated Security=True");////name ="QuotesTemp"
-            connectionDB.Open();
-            if (connectionDB.State == ConnectionState.Open) PrintLog("бд подключен");
-            else PrintLog("бд НЕ подключен");
-            adapter = new SqlDataAdapter("SELECT [<CLOSE>] FROM Brent2018", connectionDB);
+
+            //SqlConnection connectionDB = new SqlConnection("Data Source=DESKTOP-GLVT5QN\\SQLEXPRESS01;Initial Catalog=tempdb;Integrated Security=True");////name ="QuotesTemp"
+            //connectionDB.Open();
+            //if (connectionDB.State == ConnectionState.Open) PrintLog("бд подключен");
+            //else PrintLog("бд НЕ подключен");
+
+            WorkWithDB workWithDB= new WorkWithDB();
+            SqlConnection sqlexpress01 = workWithDB.ConnectToDB("Data Source=DESKTOP-GLVT5QN\\SQLEXPRESS01;Initial Catalog=tempdb;Integrated Security=True", this);
+            SqlConnection quotesBD = workWithDB.ConnectToDB("Data Source=(LocalDB)\\MSSQLLocalDB;AttachDbFilename=\"C:\\Users\\Oleg PK SSD\\Documents\\GitHub\\TradingBotEvolve\\TradingBotEvolveWF\\QuotesBD.mdf\";Integrated Security=True", this);
+            SqlDataAdapter adapter = new SqlDataAdapter("SELECT * FROM Brent2018", sqlexpress01);
             adapter.Fill(dataSet);
+            SqlDataAdapter adapter2 = new SqlDataAdapter("SELECT * FROM Brent2018", quotesBD);
+            //adapter2.Fill(dataSet);
+            SqlCommandBuilder builder = new SqlCommandBuilder(adapter2);
+            adapter2.UpdateCommand = builder.GetUpdateCommand();
+            adapter2.Update(dataSet);
+
+
+            //foreach (DataRow dRow in dataSet.Tables[0].Rows)
+            //{
+            //    myArray.Add(Convert.ToDouble(dRow.ItemArray[6]));
+            //}
             foreach (DataRow dRow in dataSet.Tables[0].Rows)
             {
-                myArray.Add(Convert.ToDouble(dRow.ItemArray[0]));
+                myArray.Add(Convert.ToDouble(dRow.ItemArray[6]));
             }
-            
+
         }
         public void PrintLog(string message)
         {
