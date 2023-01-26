@@ -41,19 +41,11 @@ namespace TradingBotEvolveWF
             WorkWithDB workWithDB= new WorkWithDB();
             SqlConnection sqlexpress01 = workWithDB.ConnectToDB("Data Source=DESKTOP-GLVT5QN\\SQLEXPRESS01;Initial Catalog=tempdb;Integrated Security=True", this);
             SqlConnection quotesBD = workWithDB.ConnectToDB("Data Source=(LocalDB)\\MSSQLLocalDB;AttachDbFilename=\"C:\\Users\\Oleg PK SSD\\Documents\\GitHub\\TradingBotEvolve\\TradingBotEvolveWF\\QuotesBD.mdf\";Integrated Security=True", this);
-            SqlDataAdapter adapter = new SqlDataAdapter("SELECT * FROM Brent2018", sqlexpress01);
+            SqlDataAdapter adapter = new SqlDataAdapter("SELECT * FROM SP500", quotesBD);
             adapter.Fill(dataSet);
-            SqlDataAdapter adapter2 = new SqlDataAdapter("SELECT * FROM Brent2018", quotesBD);
-            //adapter2.Fill(dataSet);
-            SqlCommandBuilder builder = new SqlCommandBuilder(adapter2);
-            adapter2.UpdateCommand = builder.GetUpdateCommand();
-            adapter2.Update(dataSet);
+            //workWithDB.InsertIntoDB(quotesBD, dataSet, "SP500");
 
 
-            //foreach (DataRow dRow in dataSet.Tables[0].Rows)
-            //{
-            //    myArray.Add(Convert.ToDouble(dRow.ItemArray[6]));
-            //}
             foreach (DataRow dRow in dataSet.Tables[0].Rows)
             {
                 myArray.Add(Convert.ToDouble(dRow.ItemArray[6]));
@@ -72,7 +64,7 @@ namespace TradingBotEvolveWF
         }
         private void button1_Click(object sender, EventArgs e)
         {
-            BotStartAsync(new Bot($"Bot{botNumber}", 1000, this, myArray));
+            BotStartAsync(new Bot($"Bot{botNumber}", 100000, this, myArray));
             botNumber++;
         }
         async Task BotStartAsync(Bot bot)
