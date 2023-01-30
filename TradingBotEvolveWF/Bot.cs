@@ -20,31 +20,45 @@ namespace TradingBotEvolveWF
         List<double> MyArray = new List<double>();
         int Tic = 0;
         int OrdersCount = 0;
+        double AllCache;
+        double MaxAllCache = 0;
+        int TakeProfit { get; set; }
+        int StopLoss { get; set; }
 
 
-        public Bot(string name, double cache, Form1 form, List<double> myArray)
+        public Bot(string name, double cache, Form1 form, List<double> myArray, int takeProfit, int stopLoss)
         {
             Name = name;
             Caсhe = cache;
             MyForm = form;
             MyArray = myArray;
+            TakeProfit = takeProfit;
+            StopLoss = stopLoss;
         }
         public void Start()
         {
             while (Tic<MyArray.Count)
             {
-                //MyForm.PrintLog($"Tic: {Tic} ");
                 LoadNextBar(MyArray);
+                AllCache = CalculateAllCache();
+                
                 if (Orders.Count > 0)
                 {
                     LinkedList<Order> TempOrders = new LinkedList<Order>(Orders);
                     AnalyzeOrders(TempOrders);
                 }
-                AnalyzeChart(Chart);
-                //Thread.Sleep(1000);
+                if(Tic > 10) AnalyzeChart(Chart);
             }
-
-            MyForm.PrintLog2($"{Name} Кэш: {Caсhe}; Открытых сделок сейчас:{Orders.Count} на сумму: {Orders.Count*CurrentPrice}; Итого: {Caсhe+ (Orders.Count * CurrentPrice)} Сделок всего: {OrdersCount}");
+            MyForm.PrintLog("the end");
+            MyForm.PrintLog2($"{Name} Текущая цена: {CurrentPrice}. Открытые сделки:");
+            double sum = 0;
+            foreach (Order item in Orders)
+            {
+                sum += (item.BuyOrSell ? CurrentPrice * item.Volume : item.Volume * (2 * item.OpenPrice - CurrentPrice));
+                MyForm.PrintLog2($"ID {item.OrderId} тип {(item.BuyOrSell ? "Buy" : "Sell")} {item.Volume} за {item.OpenPrice} стоимостью сейчас: {(item.BuyOrSell ? CurrentPrice*item.Volume : item.Volume*(2*item.OpenPrice - CurrentPrice))}");
+            }
+            MyForm.PrintLog2($"{Name} Кэш: {Caсhe}; Открытых сделок сейчас:{Orders.Count} на сумму: {sum}; ИТОГО: {AllCache} Максимальная стоимость: {MaxAllCache} Сделок всего: {OrdersCount}");
+            //Thread.Sleep(1000);
         }
 
         public void LoadNextBar(List<double> mychart)
@@ -56,14 +70,26 @@ namespace TradingBotEvolveWF
         {
             foreach (var item in orders)
             {
-                if (CurrentPrice > item.OpenPrice*1.25) this.CloseOrder(CurrentPrice, item);
+                if (item.BuyOrSell)
+                {
+                    if (TakeProfit != 0 && CurrentPrice > item.OpenPrice * (100+TakeProfit)/100) this.CloseOrder(CurrentPrice, item, "TakeProfit");
+                    if (StopLoss != 0 && CurrentPrice < item.OpenPrice * (100-StopLoss)/100) this.CloseOrder(CurrentPrice, item, "StopLoss ");
+                }
+                else
+                {
+                    if (TakeProfit != 0 && CurrentPrice < item.OpenPrice * (100-TakeProfit)/100) this.CloseOrder(CurrentPrice, item, "TakeProfit");
+                    if (StopLoss != 0 && CurrentPrice > item.OpenPrice * (100+StopLoss)/100) this.CloseOrder(CurrentPrice, item, "StopLoss ");
+                }
             }
-            
         }
 
         public void AnalyzeChart(List<double> chart)
         {
-            if (Caсhe > CurrentPrice) this.OpenOrder(CalculateVolume(), true);
+            if (Caсhe > AllCache / 5 && Math.Floor(AllCache / 5 / CurrentPrice)>0)
+            {
+                if (chart[chart.Count - 5] < CurrentPrice && chart[chart.Count - 10] < CurrentPrice) this.OpenOrder(CalculateVolume(), false);
+                if (chart[chart.Count - 5] > CurrentPrice && chart[chart.Count - 10] > CurrentPrice) this.OpenOrder(CalculateVolume(), true);
+            }
         }
 
 
@@ -71,22 +97,37 @@ namespace TradingBotEvolveWF
         {
             Order newOrder = new Order(CurrentPrice, volume, buyOrSell);
             Orders.AddLast(newOrder);
-            MyForm.PrintLog($" {Name} open new order ID {newOrder.OrderId}: {(buyOrSell?"Buy":"Sell")} {volume} for {CurrentPrice}");
-            if (buyOrSell) Caсhe -= CurrentPrice*volume;
-            else Caсhe += CurrentPrice*volume;
+            //if (buyOrSell) Caсhe -= CurrentPrice*volume;
+            //else Caсhe += CurrentPrice*volume;
+            Caсhe -= CurrentPrice * volume;
+            MyForm.sb1.AppendLine($"Open new ID: {newOrder.OrderId}; {(buyOrSell ? "Buy" : "Sell")} {volume} for {CurrentPrice}");
             OrdersCount++;
         }
-        public void CloseOrder(double currentPrice, Order order)
+        public void CloseOrder(double currentPrice, Order order, string status)
         {
-            if(order.BuyOrSell) Caсhe += CurrentPrice*order.Volume;
-            else Caсhe -= CurrentPrice*order.Volume;
-            MyForm.PrintLog($" {Name} close order ID {order.OrderId}: {(order.BuyOrSell ? "Buy" : "Sell")} {order.Volume} for {CurrentPrice}. PROFIT = {CurrentPrice-order.OpenPrice}");
+            double result;
+            if (order.BuyOrSell) result = CurrentPrice * order.Volume;
+            else result = order.Volume * (2 * order.OpenPrice - CurrentPrice);
+            Caсhe += result;
+            MyForm.sb1.AppendLine($"{status} ID: {order.OrderId}; {(order.BuyOrSell ? "Buy" : "Sell")} {order.Volume} for {order.OpenPrice} to {CurrentPrice}. PROFIT = {Math.Round((result-order.DecreaseCache),2)}");
             Orders.Remove(order);
         }
         public int CalculateVolume()
         {
-
-            return 1;//(int)(Caсhe / CurrentPrice);
+            //if (AllCache / 5 < Caсhe) return (int)Math.Floor(AllCache/5/CurrentPrice);
+            //else return 0;
+            return (int)Math.Floor(AllCache / 5 / CurrentPrice);
+        }
+        public double CalculateAllCache()
+        {
+            double sum = Caсhe;
+            foreach(Order order in Orders)
+            {
+                if (order.BuyOrSell) sum += order.Volume*CurrentPrice;
+                else sum += order.Volume*(2*order.OpenPrice - CurrentPrice);
+            }
+            if(sum > MaxAllCache) MaxAllCache = sum;
+            return sum;
         }
     }
 }

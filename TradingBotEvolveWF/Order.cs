@@ -14,6 +14,7 @@ namespace TradingBotEvolveWF
         //double ClosePrice { get; set; }
         public int Volume { get; set; }
         public bool BuyOrSell { get; set; }
+        public double DecreaseCache { get; set; }
         public Order(double openPrice, int volume, bool buyOrSell)
         {
             OpenPrice = openPrice;
@@ -21,6 +22,7 @@ namespace TradingBotEvolveWF
             BuyOrSell = buyOrSell;
             Id++;
             OrderId = Id;
+            DecreaseCache = OpenPrice * Volume;
         }
     }
 }

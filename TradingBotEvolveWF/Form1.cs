@@ -15,13 +15,13 @@ namespace TradingBotEvolveWF
 {
     public partial class Form1 : Form
     {
-
-        //SqlDataAdapter adapter;
-        DataSet dataSet = new DataSet();
-        List<double> myArray = new List<double>();
-        StringBuilder sb1 = new StringBuilder();
+        WorkWithDB workWithDB = new WorkWithDB();
+        SqlConnection sqlexpress01;
+        List<double> botArray = new List<double>();
+        public StringBuilder sb1 = new StringBuilder();
         StringBuilder sb2 = new StringBuilder();
         int botNumber = 0;
+        double cache = 1000;
 
         public Form1()
         {
@@ -30,27 +30,18 @@ namespace TradingBotEvolveWF
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            //string temp = ConfigurationManager.ConnectionStrings["QuotesTemp"].ConnectionString;
-            //if(temp == null)PrintLog("empty");
-
-            //SqlConnection connectionDB = new SqlConnection("Data Source=DESKTOP-GLVT5QN\\SQLEXPRESS01;Initial Catalog=tempdb;Integrated Security=True");////name ="QuotesTemp"
-            //connectionDB.Open();
-            //if (connectionDB.State == ConnectionState.Open) PrintLog("бд подключен");
-            //else PrintLog("бд НЕ подключен");
-
-            WorkWithDB workWithDB= new WorkWithDB();
-            SqlConnection sqlexpress01 = workWithDB.ConnectToDB("Data Source=DESKTOP-GLVT5QN\\SQLEXPRESS01;Initial Catalog=tempdb;Integrated Security=True", this);
-            SqlConnection quotesBD = workWithDB.ConnectToDB("Data Source=(LocalDB)\\MSSQLLocalDB;AttachDbFilename=\"C:\\Users\\Oleg PK SSD\\Documents\\GitHub\\TradingBotEvolve\\TradingBotEvolveWF\\QuotesBD.mdf\";Integrated Security=True", this);
-            SqlDataAdapter adapter = new SqlDataAdapter("SELECT * FROM SP500", quotesBD);
-            adapter.Fill(dataSet);
+           
+            sqlexpress01 = workWithDB.ConnectToDB("Data Source=DESKTOP-GLVT5QN\\SQLEXPRESS01;Initial Catalog=tempdb;Integrated Security=True", this);
+            //SqlConnection quotesBD = workWithDB.ConnectToDB("Data Source=(LocalDB)\\MSSQLLocalDB;AttachDbFilename=\"C:\\Users\\Oleg PK SSD\\Documents\\GitHub\\TradingBotEvolve\\TradingBotEvolveWF\\QuotesBD.mdf\";Integrated Security=True", this);
             //workWithDB.InsertIntoDB(quotesBD, dataSet, "SP500");
-
-
-            foreach (DataRow dRow in dataSet.Tables[0].Rows)
+            DataSet dataSet2 = new DataSet();
+            SqlDataAdapter adapter2 = new SqlDataAdapter("SELECT name FROM sys.objects WHERE type in (N'U')", sqlexpress01);//заполняем комбобокс списком таблиц
+            adapter2.Fill(dataSet2);
+            foreach (DataRow item in dataSet2.Tables[0].Rows)
             {
-                myArray.Add(Convert.ToDouble(dRow.ItemArray[6]));
+                comboBox1.Items.Add(item.ItemArray[0]);
             }
-
+            
         }
         public void PrintLog(string message)
         {
@@ -64,8 +55,12 @@ namespace TradingBotEvolveWF
         }
         private void button1_Click(object sender, EventArgs e)
         {
-            BotStartAsync(new Bot($"Bot{botNumber}", 100000, this, myArray));
-            botNumber++;
+            if(comboBox1.Text != null)
+            {
+                BotStartAsync(new Bot($"BOT{botNumber}", cache, this, botArray, textBox5.Text == "" ? 0 : Convert.ToInt32(textBox5.Text), textBox6.Text == "" ? 0 : Convert.ToInt32(textBox6.Text)));
+                botNumber++;
+            }
+
         }
         async Task BotStartAsync(Bot bot)
         {
@@ -83,6 +78,23 @@ namespace TradingBotEvolveWF
         private void button2_Click(object sender, EventArgs e)
         {
             sb1.Clear(); textBox1.Clear();
+        }
+
+        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            botArray.Clear();
+            DataSet dataSet = new DataSet();
+            SqlDataAdapter adapter = new SqlDataAdapter($"SELECT * FROM {comboBox1.Text}", sqlexpress01);
+            adapter.Fill(dataSet);
+            foreach (DataRow dRow in dataSet.Tables[0].Rows)
+            {
+                botArray.Add(Convert.ToDouble(dRow.ItemArray[6]));
+            }
+        }
+
+        private void textBox3_TextChanged(object sender, EventArgs e)
+        {
+            cache = Convert.ToDouble(textBox3.Text);
         }
     }
 }
