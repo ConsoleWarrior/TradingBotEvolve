@@ -5,6 +5,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace TradingBotEvolveWF
 {
@@ -24,6 +25,8 @@ namespace TradingBotEvolveWF
         double MaxAllCache = 0;
         int TakeProfit { get; set; }
         int StopLoss { get; set; }
+        int LossOrders = 0;
+        int ProfitOrders = 0;
 
 
         public Bot(string name, double cache, Form1 form, List<double> myArray, int takeProfit, int stopLoss)
@@ -57,8 +60,9 @@ namespace TradingBotEvolveWF
                 sum += (item.BuyOrSell ? CurrentPrice * item.Volume : item.Volume * (2 * item.OpenPrice - CurrentPrice));
                 MyForm.PrintLog2($"ID {item.OrderId} тип {(item.BuyOrSell ? "Buy" : "Sell")} {item.Volume} за {item.OpenPrice} стоимостью сейчас: {(item.BuyOrSell ? CurrentPrice*item.Volume : item.Volume*(2*item.OpenPrice - CurrentPrice))}");
             }
-            MyForm.PrintLog2($"{Name} Кэш: {Caсhe}; Открытых сделок сейчас:{Orders.Count} на сумму: {sum}; ИТОГО: {AllCache} Максимальная стоимость: {MaxAllCache} Сделок всего: {OrdersCount}");
-            //Thread.Sleep(1000);
+            MyForm.PrintLog2($"{Name} Кэш: {Math.Round(Caсhe,2)}; Открытых сделок сейчас:{Orders.Count} на сумму: {sum}; Максимальная стоимость: {MaxAllCache} Сделок всего: {OrdersCount}; прибыльных: {ProfitOrders}; убыточных: {LossOrders} ИТОГО: { Math.Round(AllCache, 2)}");
+            MyForm.PrintLog2("------------------------------------------------------------------------------------");
+                //Thread.Sleep(1000);
         }
 
         public void LoadNextBar(List<double> mychart)
@@ -109,7 +113,9 @@ namespace TradingBotEvolveWF
             if (order.BuyOrSell) result = CurrentPrice * order.Volume;
             else result = order.Volume * (2 * order.OpenPrice - CurrentPrice);
             Caсhe += result;
-            MyForm.sb1.AppendLine($"{status} ID: {order.OrderId}; {(order.BuyOrSell ? "Buy" : "Sell")} {order.Volume} for {order.OpenPrice} to {CurrentPrice}. PROFIT = {Math.Round((result-order.DecreaseCache),2)}");
+            if ((result - order.PaidCache) > 0) ProfitOrders++;
+            else LossOrders++;
+            MyForm.sb1.AppendLine($"{status} ID: {order.OrderId}; {(order.BuyOrSell ? "Buy" : "Sell")} {order.Volume} for {order.OpenPrice} to {CurrentPrice};{(result - order.PaidCache>0? " PROFIT" : " LOSS")} = {Math.Round((result-order.PaidCache),2)}");
             Orders.Remove(order);
         }
         public int CalculateVolume()
