@@ -91,6 +91,7 @@ namespace TradingBotEvolveWF
         {
             if (Caсhe > AllCache / 5 && Math.Floor(AllCache / 5 / CurrentPrice)>0)
             {
+                if(this.MyForm.checkSell)
                 if (chart[chart.Count - 5] < CurrentPrice && chart[chart.Count - 10] < CurrentPrice) this.OpenOrder(CalculateVolume(), false);
                 if (chart[chart.Count - 5] > CurrentPrice && chart[chart.Count - 10] > CurrentPrice) this.OpenOrder(CalculateVolume(), true);
             }

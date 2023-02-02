@@ -10,6 +10,7 @@ using System.Windows.Forms;
 using System.Configuration;
 using System.Data.SqlClient;
 using System.Collections;
+using System.IO;
 
 namespace TradingBotEvolveWF
 {
@@ -22,6 +23,8 @@ namespace TradingBotEvolveWF
         StringBuilder sb2 = new StringBuilder();
         int botNumber = 0;
         double cache = 1000;
+        public bool checkSell;
+        public DataTable csvData;
 
         public Form1()
         {
@@ -55,11 +58,10 @@ namespace TradingBotEvolveWF
         }
         private void button1_Click(object sender, EventArgs e)
         {
-            if(comboBox1.Text != null)
-            {
-                BotStartAsync(new Bot($"BOT{botNumber}", cache, this, botArray, textBox5.Text == "" ? 0 : Convert.ToInt32(textBox5.Text), textBox6.Text == "" ? 0 : Convert.ToInt32(textBox6.Text)));
-                botNumber++;
-            }
+
+            BotStartAsync(new Bot($"BOT{botNumber}", cache, this, botArray, textBox5.Text == "" ? 0 : Convert.ToInt32(textBox5.Text), textBox6.Text == "" ? 0 : Convert.ToInt32(textBox6.Text)));
+            botNumber++;
+
 
         }
         async Task BotStartAsync(Bot bot)
@@ -88,7 +90,7 @@ namespace TradingBotEvolveWF
             adapter.Fill(dataSet);
             foreach (DataRow dRow in dataSet.Tables[0].Rows)
             {
-                botArray.Add(Convert.ToDouble(dRow.ItemArray[6]));
+                botArray.Add(Convert.ToDouble((dRow.ItemArray[6]).ToString().Replace(".",",")));
             }
         }
 
@@ -100,6 +102,35 @@ namespace TradingBotEvolveWF
         private void button3_Click(object sender, EventArgs e)
         {
             sb2.Clear(); textBox2.Clear();
+        }
+
+        private void checkBox1_CheckedChanged(object sender, EventArgs e)
+        {
+            checkSell = checkBox1.Checked;
+        }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+            if(openFileDialog1.ShowDialog() == DialogResult.OK)
+            {
+                csvData = workWithDB.ConvertCSVtoDataTable(openFileDialog1.FileName);
+                this.PrintLog2(csvData.Rows[0].ItemArray[0].ToString()+";"+csvData.Rows[csvData.Rows.Count-1].ItemArray[0].ToString());
+                
+            }
+        }
+
+        private void button5_Click(object sender, EventArgs e)
+        {
+            if (comboBox1.Text != "")
+            {
+                if (csvData != null)
+                {
+                    workWithDB.UpdateTableFromCSVFile(sqlexpress01, csvData, comboBox1.Text);
+                    PrintLog2($"Обновление {comboBox1.Text} из {openFileDialog1.SafeFileName} завершено успешно!");
+                }
+                else PrintLog2("Выберите файл для обновления");
+            }
+            else PrintLog2("Выберите таблицу для обновления в списке инструментов");
         }
     }
 }

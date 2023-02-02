@@ -5,6 +5,7 @@ using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.IO;
 
 namespace TradingBotEvolveWF
 {
@@ -25,16 +26,40 @@ namespace TradingBotEvolveWF
                 form1.PrintLog2("DB not connected"); return null;
             }
         }
-        public void InsertIntoDB(SqlConnection connection, DataSet dataSet, string table)// для копирования из одной бд в другую
+        public void UpdateTableFromCSVFile(SqlConnection connection, DataTable dataTable, string table)// для копирования из одной бд в другую
         {
-            foreach (DataRow dRow in dataSet.Tables[0].Rows)
+            SqlCommand command = new SqlCommand($"TRUNCATE TABLE {table}", connection);
+            command.ExecuteNonQuery();
+            foreach (DataRow dRow in dataTable.Rows)
             {
-                SqlCommand command = new SqlCommand($"Insert into {table} ([<DATE>],[<TIME>],[<OPEN>],[<HIGH>],[<LOW>],[<CLOSE>],[<VOL>]) values ('{dRow.ItemArray[1]}','{dRow.ItemArray[2]}','{dRow.ItemArray[3]}','{dRow.ItemArray[4]}','{dRow.ItemArray[5]}','{dRow.ItemArray[6]}',{dRow.ItemArray[7]})", connection);
+                command = new SqlCommand($"Insert into {table} ([<DATE>],[<TIME>],[<OPEN>],[<HIGH>],[<LOW>],[<CLOSE>],[<VOL>]) values ('{dRow.ItemArray[0]}','{dRow.ItemArray[1]}','{dRow.ItemArray[2]}','{dRow.ItemArray[3]}','{dRow.ItemArray[4]}','{dRow.ItemArray[5]}',{dRow.ItemArray[6]})", connection);
                 command.ExecuteNonQuery();
-
-                //'{dRow.ItemArray[1]}','{dRow.ItemArray[2]}','{dRow.ItemArray[3]}','{dRow.ItemArray[4]}','{dRow.ItemArray[5]}','{dRow.ItemArray[6]}','{dRow.ItemArray[7]}'
-                //[<TIME>],[<OPEN>],[<HIGH>],[<LOW>],[<CLOSE>],[<VOL>]
             }
+        }
+
+        public DataTable ConvertCSVtoDataTable(string strFilePath)
+        {
+            DataTable dt = new DataTable();
+            using (StreamReader sr = new StreamReader(strFilePath, System.Text.Encoding.Default))
+
+            {
+                string[] headers = sr.ReadLine().Split(';');
+                foreach (string header in headers)
+                {
+                    dt.Columns.Add(header);
+                }
+                while (!sr.EndOfStream)
+                {
+                    string[] rows = sr.ReadLine().Split(';');
+                    DataRow dr = dt.NewRow();
+                    for (int i = 0; i < headers.Length; i++)
+                    {
+                        dr[i] = rows[i];
+                    }
+                    dt.Rows.Add(dr);
+                }
+            }
+            return dt;
         }
     }
 }
